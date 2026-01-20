@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
 import json
+import os
 from cryptography.fernet import Fernet
 
 # Internal modules
@@ -16,19 +17,27 @@ app.secret_key = Config.SECRET_KEY
 init_db()
 
 # Encryption Setup
-# Uses the key from .env to encrypt drafts in the database
-cipher = Fernet(Config.FERNET_KEY.encode())
+try:
+    # Ensure key is bytes
+    key = Config.FERNET_KEY.encode() if isinstance(Config.FERNET_KEY, str) else Config.FERNET_KEY
+    cipher = Fernet(key)
+except Exception as e:
+    print(f"Critical Error: Invalid FERNET_KEY. {e}")
+    # Fallback to a new key to keep app alive, though old data won't decrypt
+    cipher = Fernet(Fernet.generate_key())
 
 def encrypt_text(text: str) -> str:
     """Encrypts a plaintext string."""
+    if not text: return ""
     return cipher.encrypt(text.encode()).decode()
 
 def decrypt_text(enc_text: str) -> str:
     """Decrypts a ciphertext string."""
+    if not enc_text: return ""
     try:
         return cipher.decrypt(enc_text.encode()).decode()
     except Exception:
-        return "[Decryption Failed]"
+        return "[Error: Decryption Failed - Key may have changed]"
 
 # --- Routes: Pages ---
 
@@ -42,61 +51,65 @@ def dashboard():
     """Render the Main App Dashboard."""
     return render_template('dashboard.html')
 
-@app.route('/login')
-def login():
-    """Placeholder login - Redirects to app for demo."""
-    return redirect(url_for('dashboard'))
+# --- AUTHENTICATION ROUTES ---
 
-@app.route('/signup')
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        # TEST CREDENTIALS
+        if email == 'test@example.com' and password == 'password':
+            return redirect(url_for('dashboard'))
+        else:
+            error = "Invalid credentials. Try: test@example.com / password"
+
+    return render_template('login.html', mode='login', error=error)
+
+@app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    """Placeholder signup - Redirects to app for demo."""
-    return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        return redirect(url_for('dashboard'))
+    return render_template('login.html', mode='signup')
 
 # --- Routes: API ---
 
 @app.route('/api/templates', methods=['GET'])
 def get_templates():
-    """Return list of available templates from JSON file."""
     try:
-        with open('templates_data.json', 'r') as f:
+        # Use absolute path to ensure file is found regardless of where script is run
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(base_dir, 'templates_data.json')
+        
+        with open(path, 'r') as f:
             templates = json.load(f)
         return jsonify(templates)
     except FileNotFoundError:
         return jsonify([])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/generate', methods=['POST'])
 def generate():
-    """
-    Main Generation Endpoint.
-    Accepts: prompt, category, tone, audience
-    Returns: generated text from LLM
-    """
     data = request.json
-    
-    # Extract params with defaults
     tone = data.get('tone', 'Professional')
     audience = data.get('audience', 'General')
     category = data.get('category', 'General')
     user_prompt = data.get('prompt', '')
-    context = data.get('context', '') # Existing text for continuation
+    context = data.get('context', '')
     
     if not user_prompt and not context:
         return jsonify({'error': 'Prompt is required'}), 400
     
-    # 1. Build the system prompt based on category/tone
     system_prompt = LLMService.build_system_prompt(tone, audience, category)
-    
-    # 2. Call the LLM Service
     result_text = LLMService.generate_text(system_prompt, user_prompt, existing_context=context)
     
     return jsonify({'text': result_text})
 
 @app.route('/api/rewrite', methods=['POST'])
 def rewrite():
-    """
-    Rewrite Endpoint.
-    Accepts: text, mode (e.g., 'Shorter', 'Professional')
-    """
     data = request.json
     original_text = data.get('text', '')
     mode = data.get('mode', 'Professional') 
@@ -104,9 +117,7 @@ def rewrite():
     if not original_text:
         return jsonify({'error': 'No text provided'}), 400
 
-    # Define specific instructions for rewrite modes
     instruction = f"Rewrite this text to be {mode}."
-    
     if mode == "Simpler English":
         instruction += " Use simple vocabulary and short sentences (Grade 5 level)."
     elif mode == "More Persuasive":
@@ -117,49 +128,46 @@ def rewrite():
         instruction = "Summarize this text concisely without losing key meaning."
 
     prompt = f"{instruction}\n\nORIGINAL TEXT:\n{original_text}"
-    
     result = LLMService.generate_text("You are an expert editor.", prompt)
-    
     return jsonify({'text': result})
 
-# --- Draft Handling (Guest Mode) ---
-# NOTE: For this demo, we use User ID 1 as the global "Guest"
+# --- Draft Handling ---
 
 @app.route('/api/drafts/save', methods=['POST'])
 def save_draft():
-    """Saves or Updates a draft in SQLite."""
     data = request.json
     content = data.get('content', '')
-    
+    title = data.get('title', 'Untitled')
+    category = data.get('category', 'General')
+
     if not content:
         return jsonify({'error': 'Content cannot be empty'}), 400
 
-    # Encrypt content before saving
     encrypted_content = encrypt_text(content)
-    
     conn = get_db_connection()
     draft_id = data.get('id')
     user_id = 1 # Guest ID
     
-    if draft_id:
-        # Update existing
-        conn.execute('UPDATE drafts SET output_text_encrypted = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                     (encrypted_content, draft_id))
-    else:
-        # Create new
-        cursor = conn.execute(
-            'INSERT INTO drafts (user_id, title, category, prompt_json, output_text_encrypted) VALUES (?, ?, ?, ?, ?)',
-            (user_id, data['title'], data['category'], json.dumps(data.get('meta', {})), encrypted_content)
-        )
-        draft_id = cursor.lastrowid
+    try:
+        if draft_id:
+            conn.execute('UPDATE drafts SET output_text_encrypted = ?, title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                         (encrypted_content, title, draft_id))
+        else:
+            cursor = conn.execute(
+                'INSERT INTO drafts (user_id, title, category, prompt_json, output_text_encrypted) VALUES (?, ?, ?, ?, ?)',
+                (user_id, title, category, json.dumps(data.get('meta', {})), encrypted_content)
+            )
+            draft_id = cursor.lastrowid
         
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Draft saved securely', 'id': draft_id})
+        conn.commit()
+        return jsonify({'message': 'Draft saved securely', 'id': draft_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/api/drafts', methods=['GET'])
 def list_drafts():
-    """List all drafts for the guest user."""
     conn = get_db_connection()
     drafts = conn.execute('SELECT id, title, category, created_at FROM drafts WHERE user_id = 1 ORDER BY created_at DESC').fetchall()
     conn.close()
@@ -167,7 +175,6 @@ def list_drafts():
 
 @app.route('/api/drafts/<int:id>', methods=['GET'])
 def get_draft(id):
-    """Retrieve a single draft and decrypt it."""
     conn = get_db_connection()
     draft = conn.execute('SELECT * FROM drafts WHERE id = ? AND user_id = 1', (id,)).fetchone()
     conn.close()
@@ -177,26 +184,25 @@ def get_draft(id):
     
     data = dict(draft)
     data['content'] = decrypt_text(data['output_text_encrypted'])
+    # Remove sensitive encrypted field from response
+    if 'output_text_encrypted' in data:
+        del data['output_text_encrypted']
         
-    # Remove raw encrypted data from response
-    del data['output_text_encrypted']
     return jsonify(data)
 
-# --- Export ---
 @app.route('/api/export/<type>/<int:id>', methods=['GET'])
 def export_file(type, id):
-    """Generates a downloadable PDF or DOCX file."""
     conn = get_db_connection()
     draft = conn.execute('SELECT output_text_encrypted, title FROM drafts WHERE id = ?', (id,)).fetchone()
     conn.close()
-    
     if not draft:
         return "Not found", 404
-        
-    content = decrypt_text(draft['output_text_encrypted'])
-    # Sanitize title for filename
-    title = "".join([c for c in draft['title'] if c.isalnum() or c in (' ','-','_')]).strip().replace(' ', '_')
     
+    content = decrypt_text(draft['output_text_encrypted'])
+    # Sanitize filename
+    title = "".join([c for c in draft['title'] if c.isalnum() or c in (' ','-','_')]).strip().replace(' ', '_')
+    if not title: title = "document"
+
     if type == 'pdf':
         buffer = ExportService.to_pdf(content)
         return send_file(buffer, as_attachment=True, download_name=f"{title}.pdf", mimetype='application/pdf')

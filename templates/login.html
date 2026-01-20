@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Workspace | Draft Master AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="auth-page">
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            
+            <!-- Logo Section -->
+            <div class="auth-header-logo">
+                <a href="/" class="logo-container">
+                    <!-- Updated Logo Source -->
+                    <img src="/static/logo.png" alt="Draft Master Logo" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block'">
+                    <i class="fas fa-feather-alt fallback-icon" style="display:none; font-size: 2rem; color: var(--primary);"></i>
+                    
+                </a>
+            </div>
+
+            <!-- Error Banner -->
+            {% if error %}
+            <div class="error-banner">
+                <i class="fas fa-exclamation-circle"></i> <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Toggle Tabs -->
+            <div class="auth-tabs-container">
+                <div class="auth-tabs">
+                    <button class="auth-tab {{ 'active' if mode == 'login' else '' }}" onclick="switchTab('login')" id="tab-login">
+                        Sign In
+                    </button>
+                    <button class="auth-tab {{ 'active' if mode == 'signup' else '' }}" onclick="switchTab('signup')" id="tab-signup">
+                        Sign Up
+                    </button>
+                </div>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <div id="form-login" class="auth-form-wrapper {{ 'hidden' if mode == 'signup' else '' }}">
+                <div class="form-intro">
+                    <h2>Welcome back</h2>
+                    <p>Enter your credentials to access your workspace.</p>
+                </div>
+
+                <form action="/login" method="post">
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input type="email" name="email" class="input-control with-icon" placeholder="name@company.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label class="form-label">Password</label>
+                            <a href="#" class="link-sm">Forgot password?</a>
+                        </div>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" name="password" class="input-control with-icon" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full btn-lg">Sign In</button>
+                </form>
+                
+                <div class="demo-badge">
+                    <span>Demo:</span> <b>test@example.com</b> / <b>password</b>
+                </div>
+            </div>
+
+            <!-- SIGNUP FORM -->
+            <div id="form-signup" class="auth-form-wrapper {{ 'hidden' if mode == 'login' else '' }}">
+                <div class="form-intro">
+                    <h2>Create an account</h2>
+                    <p>Start writing professional content in seconds.</p>
+                </div>
+
+                <form action="/signup" method="post">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" name="name" class="input-control with-icon" placeholder="John Doe" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input type="email" name="email" class="input-control with-icon" placeholder="name@company.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" name="password" class="input-control with-icon" placeholder="Create a password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full btn-lg">Get Started</button>
+                </form>
+            </div>
+
+            <div class="auth-divider">
+                <span>OR CONTINUE WITH</span>
+            </div>
+
+            <div class="social-login-grid">
+                <button class="btn btn-outline btn-full"><i class="fab fa-google"></i> Google</button>
+                <button class="btn btn-outline btn-full"><i class="fab fa-github"></i> GitHub</button>
+            </div>
+
+            <div class="auth-footer" id="footer-text">
+                <!-- Content updated via JS -->
+            </div>
+        </div>
+        
+        <p class="copyright-text">&copy; 2025 Draft Master AI. All rights reserved.</p>
+    </div>
+
+    <script>
+        function switchTab(mode) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + mode).classList.add('active');
+
+            document.querySelectorAll('.auth-form-wrapper').forEach(f => f.classList.add('hidden'));
+            document.getElementById('form-' + mode).classList.remove('hidden');
+
+            const newUrl = mode === 'login' ? '/login' : '/signup';
+            // Use history.pushState to avoid page reload, but for simple toggle just updating UI is enough
+            // window.history.replaceState({path: newUrl}, '', newUrl);
+
+            updateFooter(mode);
+        }
+
+        function updateFooter(mode) {
+            const footer = document.getElementById('footer-text');
+            if(mode === 'login') {
+                footer.innerHTML = 'Don\'t have an account? <a href="#" onclick="switchTab(\'signup\'); return false;" class="auth-link">Sign up for free</a>';
+            } else {
+                footer.innerHTML = 'Already have an account? <a href="#" onclick="switchTab(\'login\'); return false;" class="auth-link">Sign in</a>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateFooter("{{ mode }}");
+        });
+    </script>
+</body>
+</html>
