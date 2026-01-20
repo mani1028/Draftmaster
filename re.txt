@@ -1,0 +1,29 @@
+python -m venv venv
+# Windows: venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
+
+**2. Install Dependencies**
+```bash
+pip install -r requirements.txt
+
+**3. Generate Keys & Config**
+Run this python one-liner to generate a Fernet Key:
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+Copy the output. Create a `.env` file (copy from `.env.example`) and paste the key into `FERNET_KEY`.
+
+**4. Setup AI Provider**
+- **Option A (Groq):** Get a free API key from [console.groq.com](https://console.groq.com). Set `LLM_PROVIDER=GROQ` and `GROQ_API_KEY=your_key` in `.env`.
+- **Option B (Local Ollama):** Install Ollama, run `ollama pull llama3.2:3b`. Set `LLM_PROVIDER=OLLAMA` in `.env`.
+
+**5. Run the Application**
+```bash
+python app.py
+
+**6. Access**
+Open `http://127.0.0.1:5000` in your browser.
+1. Click "Get Started Free" to Sign Up.
+2. Login with your new account.
+3. Select a template (e.g., "Cold Email to Investor").
+4. Fill in the details and click "Generate".
+5. Edit, Save, or Export your document.
