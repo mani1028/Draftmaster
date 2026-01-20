@@ -1,0 +1,39 @@
+[
+  { "category": "Email", "subcategory": "Business", "title": "Cold Email to Investor", "prompt": "Write a cold email to an investor regarding a seed round for a SaaS startup. Focus on ROI and traction." },
+  { "category": "Email", "subcategory": "Business", "title": "Client Follow-up", "prompt": "Write a polite but firm follow-up email to a client who hasn't responded to a proposal sent last week." },
+  { "category": "Email", "subcategory": "HR", "title": "Appraisal Review", "prompt": "Write a self-appraisal review highlighting achievements in software development, team leadership, and project delivery." },
+  { "category": "Email", "subcategory": "Service", "title": "Complaint Escalation", "prompt": "Write a formal complaint escalation email regarding poor service from a vendor, demanding immediate action." },
+  { "category": "Email", "subcategory": "Service", "title": "Apology Email", "prompt": "Write a sincere professional apology email to a client for a missed deadline, explaining the steps taken to prevent recurrence." },
+  
+  { "category": "Letter", "subcategory": "HR", "title": "Resignation Letter", "prompt": "Write a polite resignation letter with a 2-week notice period, expressing gratitude for the opportunity." },
+  { "category": "Letter", "subcategory": "HR", "title": "Offer Letter", "prompt": "Write a formal job offer letter for a Senior Marketing Manager role, including salary, start date, and benefits summary." },
+  { "category": "Letter", "subcategory": "Academic", "title": "Recommendation Letter", "prompt": "Write a strong recommendation letter for a student applying for a Masters program in Computer Science." },
+  { "category": "Letter", "subcategory": "Government", "title": "Official Request Letter", "prompt": "Write a formal letter to the city council requesting permission to host a community event in the public park." },
+  
+  { "category": "Proposal", "subcategory": "Startup", "title": "Startup Pitch Deck Summary", "prompt": "Write a compelling summary for a pitch deck explaining a new AI product, problem solved, solution, and market size." },
+  { "category": "Proposal", "subcategory": "Agency", "title": "Digital Marketing Proposal", "prompt": "Create a detailed proposal structure for a Digital Marketing agency pitching SEO and Social Media services to a retail brand." },
+  { "category": "Proposal", "subcategory": "Business", "title": "Partnership Proposal", "prompt": "Write a strategic partnership proposal between a software company and a hardware vendor to bundle services." },
+  
+  { "category": "Business", "subcategory": "IT Services", "title": "IT Service Description", "prompt": "Write a professional service description page for an IT consulting firm specializing in Cloud Migration." },
+  { "category": "Business", "subcategory": "Real Estate", "title": "Property Listing Description", "prompt": "Write a luxurious and captivating description for a 3-bedroom penthouse listing in a prime city location." },
+  { "category": "Business", "subcategory": "Profile", "title": "Company Vision & Mission", "prompt": "Draft a powerful Vision and Mission statement for an eco-friendly fashion e-commerce brand." },
+  
+  { "category": "Student", "subcategory": "Application", "title": "SOP for Masters", "prompt": "Write a Statement of Purpose (SOP) for a Master's degree in Data Science, highlighting academic background and future goals." },
+  { "category": "Student", "subcategory": "Jobs", "title": "Internship Cover Letter", "prompt": "Write a cover letter for a summer internship at a major tech company, emphasizing coding skills and eagerness to learn." },
+  { "category": "Student", "subcategory": "Assignment", "title": "Essay on AI Ethics", "prompt": "Write a well-structured academic essay on the ethical implications of Artificial Intelligence in modern society." },
+  { "category": "Student", "subcategory": "Resume", "title": "Resume Bullet Points", "prompt": "Generate 5 strong, action-oriented resume bullet points for a Customer Service role." },
+  
+  { "category": "HR", "subcategory": "Internal", "title": "Warning Letter", "prompt": "Write a formal warning letter to an employee regarding repeated attendance issues and tardiness." },
+  { "category": "HR", "subcategory": "Policy", "title": "Work From Home Policy", "prompt": "Draft a clear internal announcement explaining the new hybrid Work From Home policy to employees." },
+  
+  { "category": "Marketing", "subcategory": "Social", "title": "Instagram Captions", "prompt": "Write 5 engaging, emoji-rich Instagram captions for a new coffee shop launch." },
+  { "category": "Marketing", "subcategory": "Ads", "title": "Google/Meta Ad Copy", "prompt": "Write 3 variations of punchy ad copy for a CRM software, focusing on increasing sales efficiency." },
+  { "category": "Marketing", "subcategory": "Web", "title": "Landing Page Hero", "prompt": "Write a high-converting Hero Section headline and subheadline for a fitness coaching app." },
+  
+  { "category": "Sales", "subcategory": "Outreach", "title": "Sales Pitch Script", "prompt": "Write a persuasive sales pitch script for selling enterprise security software to CTOs." },
+  { "category": "Sales", "subcategory": "Objection", "title": "Objection Handling: 'Too Expensive'", "prompt": "Write a polite and convincing email reply handling a client's objection that the price is too high." },
+  
+  { "category": "Personal", "subcategory": "Relationship", "title": "Love Letter", "prompt": "Write a deeply romantic and emotional love letter for an anniversary." },
+  { "category": "Personal", "subcategory": "Social", "title": "Apology Message", "prompt": "Write a sincere personal apology message to a friend for missing their birthday party." },
+  { "category": "Personal", "subcategory": "Event", "title": "Thank You Note", "prompt": "Write a warm thank-you note to guests for attending a wedding ceremony." }
+]
