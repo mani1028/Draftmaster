@@ -11,8 +11,13 @@ class Config:
     # Secret key for Flask sessions
     SECRET_KEY = os.getenv('SECRET_KEY', 'writegenius_open_secret_key_change_in_prod')
     
-    # Absolute Database path to prevent "File Not Found" issues
-    DB_NAME = os.path.join(BASE_DIR, "writegenius_core.db")
+    # Database configuration - use DATABASE_URL from .env if provided
+    # Supports both absolute paths and relative paths (relative to BASE_DIR)
+    _db_url = os.getenv('DATABASE_URL', 'writegenius_core.db')
+    if os.path.isabs(_db_url):
+        DB_NAME = _db_url
+    else:
+        DB_NAME = os.path.join(BASE_DIR, _db_url)
     
     # Cache file for saving API responses to save API tokens
     CACHE_FILE = os.path.join(BASE_DIR, "prompt_cache.json")
