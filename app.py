@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file, redirect,
 import json
 import os
 import sqlite3
+import hashlib
 from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -36,6 +37,47 @@ def decrypt_text(enc_text: str) -> str:
         return cipher.decrypt(enc_text.encode()).decode()
     except Exception:
         return "[Error: Decryption Failed]"
+
+# --- Caching Helpers ---
+
+def get_cache_key(data):
+    """Generates a unique MD5 hash based on prompt parameters."""
+    params = [
+        str(data.get('category', 'General')),
+        str(data.get('tone', 'Professional')),
+        str(data.get('audience', 'General')),
+        str(data.get('prompt', '')),
+        str(data.get('context', '')),
+        str(data.get('mode', '')) # Added mode to key for rewrite requests
+    ]
+    cache_string = "|".join(params)
+    return hashlib.md5(cache_string.encode()).hexdigest()
+
+def get_cached_response(cache_key):
+    if not os.path.exists(Config.CACHE_FILE):
+        return None
+    try:
+        with open(Config.CACHE_FILE, 'r') as f:
+            cache_data = json.load(f)
+            return cache_data.get(cache_key)
+    except Exception:
+        return None
+
+def save_to_cache(cache_key, response_text):
+    cache_data = {}
+    if os.path.exists(Config.CACHE_FILE):
+        try:
+            with open(Config.CACHE_FILE, 'r') as f:
+                cache_data = json.load(f)
+        except Exception:
+            cache_data = {}
+            
+    cache_data[cache_key] = response_text
+    try:
+        with open(Config.CACHE_FILE, 'w') as f:
+            json.dump(cache_data, f, indent=4)
+    except Exception as e:
+        print(f"Cache Write Error: {e}")
 
 # --- Helper: Get Current User ---
 def get_current_user_id():
@@ -125,6 +167,12 @@ def get_templates():
 @app.route('/api/generate', methods=['POST'])
 def generate():
     data = request.json
+    cache_key = get_cache_key(data)
+    cached_text = get_cached_response(cache_key)
+    
+    if cached_text:
+        return jsonify({'text': cached_text, 'cached': True})
+
     system_prompt = LLMService.build_system_prompt(
         data.get('tone', 'Professional'), 
         data.get('audience', 'General'), 
@@ -132,10 +180,44 @@ def generate():
     )
     result_text = LLMService.generate_text(system_prompt, data.get('prompt', ''), data.get('context'))
     
-    # Check if the result is an error message from Groq
     if result_text.startswith("Groq Error") or result_text.startswith("Error"):
         return jsonify({'text': result_text}), 500
-        
+    
+    save_to_cache(cache_key, result_text)
+    return jsonify({'text': result_text, 'cached': False})
+
+@app.route('/api/rewrite', methods=['POST'])
+def rewrite():
+    data = request.json
+    text_to_edit = data.get('text', '')
+    mode = data.get('mode', 'Grammar Fix')
+    
+    if not text_to_edit:
+        return jsonify({'text': 'No content provided'}), 400
+
+    # Check cache for rewrites too
+    cache_key = get_cache_key({'prompt': text_to_edit, 'mode': mode})
+    cached_text = get_cached_response(cache_key)
+    if cached_text:
+        return jsonify({'text': cached_text, 'cached': True})
+
+    # Prepare specialized instruction for the LLM based on mode
+    instruction = ""
+    if mode == 'Grammar Fix':
+        instruction = "Fix all grammatical errors, spelling mistakes, and punctuation. Maintain the original meaning exactly."
+    elif mode == 'Shorter':
+        instruction = "Rewrite the following text to be more concise and brief while retaining all key information."
+    elif mode == 'More Persuasive':
+        instruction = "Rewrite this text to be more compelling, persuasive, and engaging. Use strong action verbs."
+    else:
+        instruction = f"Edit the following text: {mode}"
+
+    system_prompt = "You are a professional editor. Output ONLY the revised text without any comments or introduction."
+    result_text = LLMService.generate_text(system_prompt, f"{instruction}\n\nTEXT:\n{text_to_edit}")
+
+    if not (result_text.startswith("Groq Error") or result_text.startswith("Error")):
+        save_to_cache(cache_key, result_text)
+    
     return jsonify({'text': result_text})
 
 @app.route('/api/drafts/save', methods=['POST'])
@@ -183,6 +265,27 @@ def get_draft(id):
     data = dict(draft)
     data['content'] = decrypt_text(data['output_text_encrypted'])
     return jsonify(data)
+
+@app.route('/api/export/<string:format>/<int:id>')
+def export_file(format, id):
+    user_id = get_current_user_id()
+    conn = get_db_connection()
+    draft = conn.execute('SELECT * FROM drafts WHERE id = ? AND user_id = ?', (id, user_id)).fetchone()
+    conn.close()
+    
+    if not draft: return "Draft not found", 404
+    
+    content = decrypt_text(draft['output_text_encrypted'])
+    title = draft['title'] or "Document"
+    
+    if format == 'pdf':
+        buffer = ExportService.to_pdf(content)
+        return send_file(buffer, as_attachment=True, download_name=f"{title}.pdf", mimetype='application/pdf')
+    elif format == 'docx':
+        buffer = ExportService.to_docx(content)
+        return send_file(buffer, as_attachment=True, download_name=f"{title}.docx", mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    
+    return "Invalid format", 400
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

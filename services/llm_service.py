@@ -8,7 +8,7 @@ class LLMService:
     @staticmethod
     def generate_text(system_prompt: str, user_prompt: str, existing_context: str = None) -> str:
         """
-        Routes to the correct LLM. Updated model ID to fix 404.
+        Routes to the correct LLM.
         """
         final_prompt = user_prompt
         if existing_context:
@@ -27,6 +27,7 @@ class LLMService:
             "Content-Type": "application/json"
         }
         
+        # Using the reliable Llama 3.1 8B model
         model_id = 'llama-3.1-8b-instant' 
         
         data = {
@@ -35,14 +36,14 @@ class LLMService:
                 {"role": "system", "content": sys_p},
                 {"role": "user", "content": user_p}
             ],
-            "temperature": 0.6,
+            "temperature": 0.5, # Slightly lower temperature for more predictable rewrites
             "max_tokens": 4096,
             "top_p": 1
         }
         
         session = requests.Session()
         retry_strategy = Retry(
-            total=2,
+            total=3,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["POST"]
@@ -81,18 +82,13 @@ class LLMService:
             "HR": "Chief Human Resources Officer",
             "Business": "Senior Strategy Consultant",
             "Marketing": "Chief Marketing Officer",
-            "Sales": "Senior Sales Director"
+            "Sales": "Senior Sales Director",
+            "Personal": "Thoughtful Personal Assistant",
+            "Student": "Academic Advisor"
         }
         expert_role = persona_map.get(category, "Expert Copywriter")
         
-        base = f"You are WriteGenius AI, acting as a {expert_role}."
+        base = f"You are DraftMaster AI, a world-class {expert_role}."
+        rules = "Provide professional, ready-to-use content. Do NOT include any meta-talk like 'Here is your draft' or 'I hope this helps'."
         
-        # Explicit instruction to avoid Markdown stars and use <b> tags for the exporter
-        rules = """
-        Produce high-quality content only. 
-        - Do not include conversational filler.
-        - IMPORTANT: Do NOT use markdown stars (**) for bolding. 
-        - Instead, use HTML tags <b>...</b> for sections you want to be bold.
-        """
-        
-        return f"{base}\n{rules}\nTONE: {tone}\nAUDIENCE: {audience}\nCATEGORY: {category}"
+        return f"{base}\n{rules}\n\nSTYLE GUIDE:\n- Tone: {tone}\n- Audience: {audience}\n- Domain: {category}"
