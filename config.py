@@ -14,6 +14,9 @@ class Config:
     # Absolute Database path to prevent "File Not Found" issues
     DB_NAME = os.path.join(BASE_DIR, "writegenius_core.db")
     
+    # Cache file for saving API responses to save API tokens
+    CACHE_FILE = os.path.join(BASE_DIR, "prompt_cache.json")
+    
     # LLM Configuration
     LLM_PROVIDER = 'GROQ' 
     GROQ_API_KEY = os.getenv('GROQ_API_KEY')
