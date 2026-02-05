@@ -8,7 +8,7 @@ class LLMService:
     @staticmethod
     def generate_text(system_prompt: str, user_prompt: str, existing_context: str = None) -> str:
         """
-        Routes to the correct LLM. Currently forced to GROQ.
+        Routes to the correct LLM. Updated model ID to fix 404.
         """
         final_prompt = user_prompt
         if existing_context:
@@ -27,7 +27,7 @@ class LLMService:
             "Content-Type": "application/json"
         }
         
-        model_id = 'llama-3.3-70b-versatile'
+        model_id = 'llama-3.1-8b-instant' 
         
         data = {
             "model": model_id, 
@@ -55,7 +55,8 @@ class LLMService:
             
             if resp.status_code != 200:
                 try:
-                    error_msg = resp.json().get('error', {}).get('message', resp.text)
+                    error_json = resp.json()
+                    error_msg = error_json.get('error', {}).get('message', resp.text)
                 except:
                     error_msg = resp.text
                 return f"Groq Error ({resp.status_code}): {error_msg}"
@@ -63,13 +64,13 @@ class LLMService:
             response_json = resp.json()
             choices = response_json.get('choices')
             
-            if not choices or not isinstance(choices, list):
+            if not choices:
                 return "Error: Empty response from AI provider."
                 
             return choices[0].get('message', {}).get('content', '')
 
         except requests.exceptions.Timeout:
-            return "Error: AI request timed out. Please try again with a shorter prompt."
+            return "Error: AI request timed out."
         except Exception as e:
             return f"Connection Error: {str(e)}"
 
@@ -80,23 +81,18 @@ class LLMService:
             "HR": "Chief Human Resources Officer",
             "Business": "Senior Strategy Consultant",
             "Marketing": "Chief Marketing Officer",
-            "Sales": "Senior Sales Director",
-            "Academic": "University Professor",
-            "Student": "Academic Advisor",
-            "Personal": "Communication Coach",
-            "Proposal": "Venture Capital Analyst"
+            "Sales": "Senior Sales Director"
         }
         expert_role = persona_map.get(category, "Expert Copywriter")
         
-        base = f"You are WriteGenius AI, acting as a {expert_role}. Produce high-quality, human-like content."
+        base = f"You are WriteGenius AI, acting as a {expert_role}."
         
+        # Explicit instruction to avoid Markdown stars and use <b> tags for the exporter
         rules = """
-        RULES:
-        - No fluff. Be concise and high-impact.
-        - Adapt vocabulary strictly to the audience.
-        - Use professional formatting (bold key points).
-        - Do NOT use phrases like "I hope this finds you well" or "In conclusion".
-        - Do NOT include pre-text (e.g., "Here is the email"). Output ONLY the content.
+        Produce high-quality content only. 
+        - Do not include conversational filler.
+        - IMPORTANT: Do NOT use markdown stars (**) for bolding. 
+        - Instead, use HTML tags <b>...</b> for sections you want to be bold.
         """
         
         return f"{base}\n{rules}\nTONE: {tone}\nAUDIENCE: {audience}\nCATEGORY: {category}"
