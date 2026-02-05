@@ -8,7 +8,7 @@ class LLMService:
     @staticmethod
     def generate_text(system_prompt: str, user_prompt: str, existing_context: str = None) -> str:
         """
-        Routes to the correct LLM. Currently forced to GROQ.
+        Routes to the correct LLM.
         """
         final_prompt = user_prompt
         if existing_context:
@@ -27,7 +27,8 @@ class LLMService:
             "Content-Type": "application/json"
         }
         
-        model_id = 'llama-3.3-70b-versatile'
+        # Using the reliable Llama 3.1 8B model
+        model_id = 'llama-3.1-8b-instant' 
         
         data = {
             "model": model_id, 
@@ -35,14 +36,14 @@ class LLMService:
                 {"role": "system", "content": sys_p},
                 {"role": "user", "content": user_p}
             ],
-            "temperature": 0.6,
+            "temperature": 0.5, # Slightly lower temperature for more predictable rewrites
             "max_tokens": 4096,
             "top_p": 1
         }
         
         session = requests.Session()
         retry_strategy = Retry(
-            total=2,
+            total=3,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["POST"]
@@ -55,7 +56,8 @@ class LLMService:
             
             if resp.status_code != 200:
                 try:
-                    error_msg = resp.json().get('error', {}).get('message', resp.text)
+                    error_json = resp.json()
+                    error_msg = error_json.get('error', {}).get('message', resp.text)
                 except:
                     error_msg = resp.text
                 return f"Groq Error ({resp.status_code}): {error_msg}"
@@ -63,13 +65,13 @@ class LLMService:
             response_json = resp.json()
             choices = response_json.get('choices')
             
-            if not choices or not isinstance(choices, list):
+            if not choices:
                 return "Error: Empty response from AI provider."
                 
             return choices[0].get('message', {}).get('content', '')
 
         except requests.exceptions.Timeout:
-            return "Error: AI request timed out. Please try again with a shorter prompt."
+            return "Error: AI request timed out."
         except Exception as e:
             return f"Connection Error: {str(e)}"
 
@@ -81,22 +83,12 @@ class LLMService:
             "Business": "Senior Strategy Consultant",
             "Marketing": "Chief Marketing Officer",
             "Sales": "Senior Sales Director",
-            "Academic": "University Professor",
-            "Student": "Academic Advisor",
-            "Personal": "Communication Coach",
-            "Proposal": "Venture Capital Analyst"
+            "Personal": "Thoughtful Personal Assistant",
+            "Student": "Academic Advisor"
         }
         expert_role = persona_map.get(category, "Expert Copywriter")
         
-        base = f"You are WriteGenius AI, acting as a {expert_role}. Produce high-quality, human-like content."
+        base = f"You are DraftMaster AI, a world-class {expert_role}."
+        rules = "Provide professional, ready-to-use content. Do NOT include any meta-talk like 'Here is your draft' or 'I hope this helps'."
         
-        rules = """
-        RULES:
-        - No fluff. Be concise and high-impact.
-        - Adapt vocabulary strictly to the audience.
-        - Use professional formatting (bold key points).
-        - Do NOT use phrases like "I hope this finds you well" or "In conclusion".
-        - Do NOT include pre-text (e.g., "Here is the email"). Output ONLY the content.
-        """
-        
-        return f"{base}\n{rules}\nTONE: {tone}\nAUDIENCE: {audience}\nCATEGORY: {category}"
+        return f"{base}\n{rules}\n\nSTYLE GUIDE:\n- Tone: {tone}\n- Audience: {audience}\n- Domain: {category}"

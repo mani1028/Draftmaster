@@ -10,14 +10,16 @@ def init_db():
     conn = get_db_connection()
     c = conn.cursor()
     
-    # Simplified Users (We will use a single 'Guest' user for now)
+    # Updated Users table to support real authentication
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT DEFAULT 'Guest',
-        role TEXT DEFAULT 'admin'
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        name TEXT DEFAULT 'User',
+        role TEXT DEFAULT 'user'
     )''')
 
-    # Drafts
+    # Drafts table (remains same but linked to dynamic users)
     c.execute('''CREATE TABLE IF NOT EXISTS drafts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -26,14 +28,10 @@ def init_db():
         prompt_json TEXT,
         output_text_encrypted TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id)
     )''')
     
-    # Seed Guest User if not exists
-    user = c.execute('SELECT * FROM users WHERE id = 1').fetchone()
-    if not user:
-        c.execute('INSERT INTO users (id, name) VALUES (1, "Guest Admin")')
-        
     conn.commit()
     conn.close()
 
