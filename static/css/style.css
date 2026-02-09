@@ -245,7 +245,8 @@ body.auth-page {
 
 /* Landing Features & Footer */
 .trusted-section {
-    text-align: center; padding: 2rem 1.5rem;
+    text-align: center; 
+    padding: 2rem 1.5rem;
     background: #f8fafc; border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
 }
