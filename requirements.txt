@@ -4,3 +4,4 @@ python-dotenv
 cryptography
 reportlab
 python-docx
+gunicorn
